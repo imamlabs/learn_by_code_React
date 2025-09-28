@@ -1,0 +1,91 @@
+<!DOCTYPE html> <!-- Deklarasi dokumen HTML5 -->
+    <html lang="id"> <!-- Gunakan Bahasa Indonesia -->
+    <head> <!-- Bagian head untuk metadata dan library -->
+      <meta charset="utf-8"> <!-- Set encoding UTF-8 -->
+      <meta name="viewport" content="width=device-width, initial-scale=1"> <!-- Agar responsif di mobile -->
+      <title>4 Quiz App Score Review.html</title> <!-- Judul tab -->
+      <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script> <!-- Muat React UMD -->
+      <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script> <!-- Muat ReactDOM UMD -->
+      <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script> <!-- Muat Babel utk JSX di browser -->
+      <style> /* CSS sederhana untuk tampilan */
+        body { font-family: system-ui, Arial, sans-serif; padding: 20px; }
+        .card { border:1px solid #ddd; border-radius:10px; padding:14px; margin:10px 0; background:#fff; }
+        .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+        button { padding:8px 12px; border:0; border-radius:8px; background:#0d6efd; color:#fff; cursor:pointer; }
+        input, select, textarea { padding:8px 10px; border:1px solid #ccc; border-radius:8px; }
+        ul { padding-left:18px; }
+        .muted { color:#666; font-size:.9em; }
+        .danger { background:#dc3545 !important; }
+        .success { background:#198754 !important; }
+        .pill { padding:2px 8px; border-radius:999px; background:#f2f2f2; }
+        .step { width:28px; height:28px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; margin-right:6px; background:#e9ecef; }
+        .step.active { background:#0d6efd; color:#fff; }
+        .q { margin:8px 0; }
+      </style> <!-- Tutup style -->
+    </head> <!-- Tutup head -->
+    <body> <!-- Mulai body -->
+      <h1>4 Quiz App Score Review.html</h1> <!-- Heading utama -->
+      <div id="root"></div> <!-- Elemen root untuk React -->
+      <script type="text/babel"> // Gunakan Babel agar JSX bisa dijalankan
+      // ===============================================================
+      // 4 Quiz App Score Review.html
+      // Kode di bawah diberi komentar detail per baris untuk belajar.
+      // ===============================================================
+
+const QUESTIONS = [ // Daftar soal
+  {q:'Selektor id di React/JSX?', a:['$("main")', "$('#main')", "$('.main')"], correct:1}, // Soal 1
+  {q:'Hook untuk state?', a:['useState','useRef','useMemo'], correct:0}, // Soal 2
+  {q:'Render kondisional sederhana?', a:['v-if','ngIf','ternary ? :'], correct:2}, // Soal 3
+];
+
+function App(){ // Komponen utama
+  const [ans,setAns] = React.useState(Array(QUESTIONS.length).fill(null)); // State jawaban pengguna
+  const [done,setDone] = React.useState(false); // State selesai atau belum
+
+  const score = ans.reduce((s,v,i)=> s + (v===QUESTIONS[i].correct ? 1 : 0), 0); // Hitung skor
+
+  function choose(i,idx){ // Pilih jawaban
+    if(done) return; // Jika sudah selesai, abaikan
+    const next = ans.slice(); // Salin array
+    next[i] = idx; // Set jawaban di indeks i
+    setAns(next); // Simpan
+  }
+
+  return ( // UI
+    <div className="card"> {/* Kartu */}
+      {QUESTIONS.map((it,i)=> ( // Map setiap soal
+        <div key={i} className="q"> {/* Kontainer soal */}
+          <b>{i+1}. {it.q}</b> {/* Teks soal */}
+          <div> {/* Pilihan */}
+            {it.a.map((opt,idx)=> ( // Map opsi
+              <label key={idx} style={{display:'block'}}> {/* Label per opsi */}
+                <input type="radio" name={'q'+i} checked={ans[i]===idx} onChange={()=>choose(i,idx)} /> {/* Radio controlled */}
+                {' '}{opt} {/* Teks opsi */}
+                {done && ( // Jika selesai, tampilkan indikator benar/salah
+                  idx===it.correct ? <span className="pill success" style={{marginLeft:6}}>benar</span> :
+                  ans[i]===idx ? <span className="pill danger" style={{marginLeft:6}}>salah</span> : null
+                )} {/* Tutup indikator */}
+              </label> // Tutup label
+            ))} {/* Tutup map opsi */}
+          </div> {/* Tutup pilihan */}
+        </div> // Tutup kontainer soal
+      ))} {/* Tutup map soal */}
+
+      {!done ? ( // Jika belum selesai
+        <button onClick={()=> setDone(true)}>Selesai</button> // Tombol selesai
+      ) : ( // Jika selesai
+        <div className="row"> {/* Hasil */}
+          <b>Skor: {score}/{QUESTIONS.length}</b> {/* Tampilkan skor */}
+          <button onClick={()=> { setAns(Array(QUESTIONS.length).fill(null)); setDone(false); }}>Ulangi</button> {/* Reset */}
+        </div> // Tutup hasil
+      )} {/* Tutup kondisional */}
+    </div> // Tutup kartu
+  ); // Tutup return
+} // Tutup App
+
+const root = ReactDOM.createRoot(document.getElementById('root')); // Root
+root.render(<App/>); // Render
+
+      </script> <!-- Tutup script Babel -->
+    </body> <!-- Tutup body -->
+    </html> <!-- Tutup html -->

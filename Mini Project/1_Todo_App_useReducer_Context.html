@@ -1,0 +1,130 @@
+<!DOCTYPE html> <!-- Deklarasi dokumen HTML5 -->
+    <html lang="id"> <!-- Gunakan Bahasa Indonesia -->
+    <head> <!-- Bagian head untuk metadata dan library -->
+      <meta charset="utf-8"> <!-- Set encoding UTF-8 -->
+      <meta name="viewport" content="width=device-width, initial-scale=1"> <!-- Agar responsif di mobile -->
+      <title>1 Todo App useReducer Context.html</title> <!-- Judul tab -->
+      <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script> <!-- Muat React UMD -->
+      <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script> <!-- Muat ReactDOM UMD -->
+      <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script> <!-- Muat Babel utk JSX di browser -->
+      <style> /* CSS sederhana untuk tampilan */
+        body { font-family: system-ui, Arial, sans-serif; padding: 20px; }
+        .card { border:1px solid #ddd; border-radius:10px; padding:14px; margin:10px 0; background:#fff; }
+        .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+        button { padding:8px 12px; border:0; border-radius:8px; background:#0d6efd; color:#fff; cursor:pointer; }
+        input, select, textarea { padding:8px 10px; border:1px solid #ccc; border-radius:8px; }
+        ul { padding-left:18px; }
+        .muted { color:#666; font-size:.9em; }
+        .danger { background:#dc3545 !important; }
+        .success { background:#198754 !important; }
+        .pill { padding:2px 8px; border-radius:999px; background:#f2f2f2; }
+        .step { width:28px; height:28px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; margin-right:6px; background:#e9ecef; }
+        .step.active { background:#0d6efd; color:#fff; }
+        .q { margin:8px 0; }
+      </style> <!-- Tutup style -->
+    </head> <!-- Tutup head -->
+    <body> <!-- Mulai body -->
+      <h1>1 Todo App useReducer Context.html</h1> <!-- Heading utama -->
+      <div id="root"></div> <!-- Elemen root untuk React -->
+      <script type="text/babel"> // Gunakan Babel agar JSX bisa dijalankan
+      // ===============================================================
+      // 1 Todo App useReducer Context.html
+      // Kode di bawah diberi komentar detail per baris untuk belajar.
+      // ===============================================================
+
+// -- State & Context -----------------------------------------------
+const TodoCtx = React.createContext(null); // Buat context untuk berbagi state todo
+
+// Reducer menentukan bagaimana state berubah terhadap sebuah action
+function todoReducer(state, action){ // Fungsi reducer menerima state sekarang & action
+  switch(action.type){ // Periksa tipe action
+    case 'add': // Jika tipe 'add'
+      return [...state, {id:Date.now(), text:action.text, done:false}]; // Kembalikan array baru dengan item baru
+    case 'toggle': // Jika tipe 'toggle'
+      return state.map(t => t.id===action.id ? {...t, done:!t.done} : t); // Balik status done pada item yang cocok
+    case 'remove': // Jika tipe 'remove'
+      return state.filter(t => t.id!==action.id); // Buang item sesuai id
+    case 'load': // Jika tipe 'load' (inisialisasi dari localStorage)
+      return action.payload; // Gunakan payload sebagai state
+    default: // Default jika aksi tidak dikenal
+      return state; // Kembalikan state tanpa perubahan
+  }
+}
+
+// -- Custom hook untuk LocalStorage --------------------------------
+function usePersistedTodos(key){ // Hook kustom menyimpan/memuat todos ke LocalStorage
+  const [state, dispatch] = React.useReducer(todoReducer, []); // Buat reducer
+  React.useEffect(()=>{ // Effect dijalankan sekali saat mount
+    const saved = JSON.parse(localStorage.getItem(key) || '[]'); // Ambil dari localStorage
+    dispatch({type:'load', payload:saved}); // Muat ke state via action 'load'
+  }, [key]); // Dependency hanya 'key'
+  React.useEffect(()=>{ // Effect untuk menyimpan tiap kali state berubah
+    localStorage.setItem(key, JSON.stringify(state)); // Simpan state -> string
+  }, [key, state]); // Jalankan saat key atau state berubah
+  return [state, dispatch]; // Kembalikan pasangan seperti useReducer biasa
+}
+
+// -- Komponen Aplikasi ---------------------------------------------
+function App(){ // Komponen utama
+  const [todos, dispatch] = usePersistedTodos('todos'); // Pakai hook kustom untuk state persisten
+  const [text, setText] = React.useState(''); // State untuk input teks
+  const [filter, setFilter] = React.useState('all'); // State filter: all/active/done
+  const left = todos.filter(t=>!t.done).length; // Hitung jumlah aktif
+
+  function add(){ // Fungsi tambah item
+    if(!text.trim()) return; // Validasi: kosong?
+    dispatch({type:'add', text:text.trim()}); // Dispatch action add
+    setText(''); // Kosongkan input
+  }
+
+  const shown = todos.filter(t => // Hitung list yang ditampilkan sesuai filter
+    filter==='all' ? true : filter==='active' ? !t.done : t.done // Logika kondisional
+  );
+
+  return ( // Kembalikan JSX
+    <TodoCtx.Provider value={dispatch}> {/* Bagikan dispatch via Context */}
+      <div className="card"> {/* Kartu pembungkus */}
+        <div className="row"> {/* Baris input */}
+          <input value={text} onChange={e=>setText(e.target.value)} placeholder="tugas..." /> {/* Input controlled */}
+          <button onClick={add}>Tambah</button> {/* Tombol tambah */}
+          <span className="pill">{left} aktif</span> {/* Lencana jumlah */}
+        </div> {/* Akhir baris */}
+
+        <div className="row"> {/* Baris filter */}
+          <label>Filter</label> {/* Label */}
+          <select value={filter} onChange={e=>setFilter(e.target.value)}> {/* Select filter */}
+            <option value="all">Semua</option> {/* Opsi semua */}
+            <option value="active">Aktif</option> {/* Opsi aktif */}
+            <option value="done">Selesai</option> {/* Opsi selesai */}
+          </select> {/* Tutup select */}
+        </div> {/* Akhir baris */}
+
+        <ul> {/* Daftar todo */}
+          {shown.map(t => ( // Iterasi item yang ditampilkan
+            <TodoItem key={t.id} todo={t} /> // Render komponen item
+          ))}
+        </ul> {/* Tutup daftar */}
+      </div> {/* Tutup kartu */}
+    </TodoCtx.Provider> // Tutup provider
+  ); // Akhir return
+} // Tutup App
+
+function TodoItem({todo}){ // Komponen Item menerima prop todo
+  const dispatch = React.useContext(TodoCtx); // Ambil dispatch dari Context
+  return ( // Kembalikan JSX
+    <li className="row"> {/* Satu baris item */}
+      <label className="row" style={{flex:1, gap:6}}> {/* Label + checkbox */}
+        <input type="checkbox" checked={todo.done} onChange={()=>dispatch({type:'toggle', id:todo.id})} /> {/* Toggle */}
+        <span style={{textDecoration: todo.done?'line-through':'none'}}>{todo.text}</span> {/* Teks dengan coret */}
+      </label> {/* Tutup label */}
+      <button className="danger" onClick={()=>dispatch({type:'remove', id:todo.id})}>Hapus</button> {/* Hapus */}
+    </li> // Tutup li
+  ); // Tutup return
+} // Tutup TodoItem
+
+const root = ReactDOM.createRoot(document.getElementById('root')); // Buat root React 18
+root.render(<App/>); // Render App
+
+      </script> <!-- Tutup script Babel -->
+    </body> <!-- Tutup body -->
+    </html> <!-- Tutup html -->

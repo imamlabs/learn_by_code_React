@@ -1,0 +1,50 @@
+<!-- Deklarasi HTML5 (mode standar). -->
+<!DOCTYPE html> <!-- Dokumen HTML5 -->
+    <!-- Elemen <html> membungkus seluruh dokumen (atribut lang untuk SEO/aksesibilitas). -->
+    <html lang="id"> <!-- Bahasa Indonesia -->
+    <!-- Bagian <head>: meta, judul, stylesheet, script global. -->
+    <head>
+      <!-- Meta charset UTF-8: dukung karakter internasional. -->
+      <meta charset="utf-8"> <!-- Encoding UTF-8 -->
+      <!-- Meta viewport: skala responsif pada perangkat mobile. -->
+      <meta name="viewport" content="width=device-width, initial-scale=1"> <!-- Responsif -->
+      <!-- Judul halaman/tab: React Forms Submit - Validasi</title> -->
+      <title>React Forms Submit - Validasi</title> <!-- Judul -->
+      <!-- Memuat React (UMD dev) — inti library React. -->
+      <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script> <!-- React UMD -->
+      <!-- Memuat ReactDOM (UMD dev) — API render ke DOM. -->
+      <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script> <!-- ReactDOM UMD -->
+      <!-- Memuat Babel standalone — kompilasi JSX di browser (untuk latihan). -->
+      <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script> <!-- Babel untuk JSX -->
+      <!-- Mulai blok CSS inline untuk styling. -->
+      <style>
+        /* Baris CSS lainnya. */
+        body { font-family: system-ui, Arial, sans-serif; padding: 20px; }
+        /* Baris CSS lainnya. */
+        .card { border:1px solid #ddd; border-radius:10px; padding:14px; margin:10px 0; }
+        /* Baris CSS lainnya. */
+        button { padding:8px 12px; border:0; border-radius:8px; background:#0d6efd; color:#fff; cursor:pointer; }
+        /* Baris CSS lainnya. */
+        input, select, textarea { padding:8px 10px; border:1px solid #ccc; border-radius:8px; }
+        /* Baris CSS lainnya. */
+        label { display:block; margin:6px 0; }
+        /* Baris CSS lainnya. */
+        pre { background:#f8f9fa; padding:10px; border-radius:8px; }
+      <!-- Tutup blok <style>. -->
+      </style>
+    <!-- Tutup <head>. -->
+    </head>
+    <!-- Bagian <body>: konten yang terlihat. -->
+    <body>
+      <!-- Heading: “React Forms Submit - Validasi</h1>” -->
+      <h1>React Forms Submit - Validasi</h1> <!-- Judul halaman -->
+      <!-- Elemen #root: tempat React di-mount (createRoot). -->
+      <div id="root"></div> <!-- Root React -->
+      <!-- Blok <script type='text/babel'> (kode React + JSX akan dikompilasi Babel). -->
+  <!-- JS inline dipisah ke berkas terpisah demi kerapian & versi kontrol -->
+  <script type="text/babel" src="assets/ex2_validation_script0.jsx"></script>
+      </script>
+    <!-- Tutup elemen <body>. -->
+    </body>
+    <!-- Tutup elemen <html>. -->
+    </html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html> <!-- Deklarasi dokumen HTML5 -->
+    <html lang="id"> <!-- Gunakan Bahasa Indonesia -->
+    <head> <!-- Bagian head untuk metadata dan library -->
+      <meta charset="utf-8"> <!-- Set encoding UTF-8 -->
+      <meta name="viewport" content="width=device-width, initial-scale=1"> <!-- Agar responsif di mobile -->
+      <title>2 Fetch Users Search Pagination.html</title> <!-- Judul tab -->
+      <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script> <!-- Muat React UMD -->
+      <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script> <!-- Muat ReactDOM UMD -->
+      <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script> <!-- Muat Babel utk JSX di browser -->
+      <style> /* CSS sederhana untuk tampilan */
+        body { font-family: system-ui, Arial, sans-serif; padding: 20px; }
+        .card { border:1px solid #ddd; border-radius:10px; padding:14px; margin:10px 0; background:#fff; }
+        .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+        button { padding:8px 12px; border:0; border-radius:8px; background:#0d6efd; color:#fff; cursor:pointer; }
+        input, select, textarea { padding:8px 10px; border:1px solid #ccc; border-radius:8px; }
+        ul { padding-left:18px; }
+        .muted { color:#666; font-size:.9em; }
+        .danger { background:#dc3545 !important; }
+        .success { background:#198754 !important; }
+        .pill { padding:2px 8px; border-radius:999px; background:#f2f2f2; }
+        .step { width:28px; height:28px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; margin-right:6px; background:#e9ecef; }
+        .step.active { background:#0d6efd; color:#fff; }
+        .q { margin:8px 0; }
+      </style> <!-- Tutup style -->
+    </head> <!-- Tutup head -->
+    <body> <!-- Mulai body -->
+      <h1>2 Fetch Users Search Pagination.html</h1> <!-- Heading utama -->
+      <div id="root"></div> <!-- Elemen root untuk React -->
+      <script type="text/babel"> // Gunakan Babel agar JSX bisa dijalankan
+      // ===============================================================
+      // 2 Fetch Users Search Pagination.html
+      // Kode di bawah diberi komentar detail per baris untuk belajar.
+      // ===============================================================
+
+function useUsers(page, q){ // Hook kustom untuk fetch users berdasarkan halaman dan query
+  const [state,setState]=React.useState({loading:true, data:[], error:null}); // State local untuk loading/data/error
+  React.useEffect(()=>{ // Jalankan setiap page/q berubah
+    let on = true; // Flag untuk mencegah setState setelah unmount
+    setState({loading:true, data:[], error:null}); // Set loading true
+    // API yang mudah diakses: reqres.in (CORS OK)
+    fetch(`https://reqres.in/api/users?page=${page}`) // Panggil API dengan query page
+      .then(r=>r.json()) // Parse JSON
+      .then(json=>{ // Setelah berhasil
+        let data = json.data || []; // Ambil array data
+        if(q) data = data.filter(u => // Jika ada query
+          (u.first_name+u.last_name).toLowerCase().includes(q.toLowerCase()) // Filter berdasar nama
+        ); // Tutup filter
+        if(on) setState({loading:false, data, error:null}); // Set hasil
+      }) // Tutup then
+      .catch(err=> on && setState({loading:false, data:[], error:String(err)})); // Tangani error
+    return ()=> { on=false; }; // Cleanup untuk membatalkan update setelah unmount
+  }, [page, q]); // Dependency array
+  return state; // Kembalikan state
+}
+
+function App(){ // Komponen utama
+  const [page,setPage] = React.useState(1); // State halaman
+  const [q,setQ] = React.useState(''); // State query pencarian
+  const {loading, data, error} = useUsers(page, q); // Pakai hook kustom
+
+  return ( // Kembalikan UI
+    <div className="card"> {/* Kartu */}
+      <div className="row"> {/* Kontrol atas */}
+        <input value={q} onChange={e=>setQ(e.target.value)} placeholder="cari nama..." /> {/* Input cari */}
+        <button onClick={()=> setPage(p=> Math.max(1, p-1))} disabled={page===1}>Prev</button> {/* Tombol prev */}
+        <span>Hal {page}</span> {/* Info halaman */}
+        <button onClick={()=> setPage(p=> p+1)}>Next</button> {/* Tombol next */}
+      </div> {/* Tutup baris */}
+
+      {loading && <p className="muted">Memuat…</p>} {/* Indikator loading */}
+      {error && <p className="muted">Error: {error}</p>} {/* Tampilkan error */}
+
+      <ul> {/* Daftar pengguna */}
+        {data.map(u => ( // Map data
+          <li key={u.id} className="row"> {/* Item */}
+            <img src={u.avatar} width="40" height="40" style={{borderRadius:'50%'}}/> {/* Avatar */}
+            <b>{u.first_name} {u.last_name}</b> {/* Nama */}
+            <span className="muted">{u.email}</span> {/* Email */}
+          </li> // Tutup li
+        ))}
+      </ul> {/* Tutup daftar */}
+    </div> // Tutup kartu
+  ); // Tutup return
+} // Tutup App
+
+const root = ReactDOM.createRoot(document.getElementById('root')); // Root
+root.render(<App/>); // Render
+
+      </script> <!-- Tutup script Babel -->
+    </body> <!-- Tutup body -->
+    </html> <!-- Tutup html -->
