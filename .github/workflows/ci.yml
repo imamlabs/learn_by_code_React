@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Detect package manager
+        id: detect-pm
+        shell: bash
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            echo "pm=pnpm" >> $GITHUB_OUTPUT
+          elif [ -f yarn.lock ]; then
+            echo "pm=yarn" >> $GITHUB_OUTPUT
+          else
+            echo "pm=npm" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Enable corepack (for yarn/pnpm)
+        if: steps.detect-pm.outputs.pm != 'npm'
+        run: corepack enable
+
+      - name: Install dependencies (if package.json exists)
+        shell: bash
+        run: |
+          if [ -f package.json ]; then
+            PM="${{ steps.detect-pm.outputs.pm }}"
+            echo "Using package manager: $PM"
+            if [ "$PM" = "pnpm" ]; then
+              pnpm install --frozen-lockfile
+            elif [ "$PM" = "yarn" ]; then
+              yarn install --frozen-lockfile
+            else
+              if [ -f package-lock.json ]; then
+                npm ci
+              else
+                npm install
+              fi
+            fi
+          else
+            echo "No package.json found. Skipping install."
+          fi
+
+      - name: Run tests (if script exists)
+        shell: bash
+        run: |
+          if [ -f package.json ]; then
+            node -e "try{const p=require('./package.json'); if(!(p.scripts&&p.scripts.test)){process.exit(2)}}catch(e){process.exit(2)}"
+            EC=$?
+            if [ $EC -eq 0 ]; then
+              PM="${{ steps.detect-pm.outputs.pm }}"
+              if [ "$PM" = "pnpm" ]; then
+                pnpm test --if-present
+              elif [ "$PM" = "yarn" ]; then
+                yarn test
+              else
+                npm run -s test
+              fi
+            else
+              echo "No test script. Skipping."
+            fi
+          else
+            echo "No package.json found. Skipping tests."
+          fi
+
+      - name: Build (if script exists)
+        shell: bash
+        run: |
+          if [ -f package.json ]; then
+            node -e "try{const p=require('./package.json'); if(!(p.scripts&&p.scripts.build)){process.exit(2)}}catch(e){process.exit(2)}"
+            EC=$?
+            if [ $EC -eq 0 ]; then
+              PM="${{ steps.detect-pm.outputs.pm }}"
+              if [ "$PM" = "pnpm" ]; then
+                pnpm build
+              elif [ "$PM" = "yarn" ]; then
+                yarn build
+              else
+                npm run -s build
+              fi
+            else
+              echo "No build script. Skipping."
+            fi
+          else
+            echo "No package.json found. Skipping build."
+          fi
+
+      - name: Upload build artifact (Vite dist/)
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-dist
+          path: dist/**
+          if-no-files-found: ignore
+
+      - name: Upload build artifact (CRA build/)
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-cra
+          path: build/**
+          if-no-files-found: ignore
+
+      - name: Final status
+        run: echo "CI selesai. Jika tidak ada build/test, job tetap lulus (pastikan running)."
