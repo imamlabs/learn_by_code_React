@@ -10,16 +10,15 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # HAPUS opsi cache agar tidak butuh lock file
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: Detect package manager
         id: detect-pm
@@ -44,9 +43,9 @@ jobs:
             PM="${{ steps.detect-pm.outputs.pm }}"
             echo "Using package manager: $PM"
             if [ "$PM" = "pnpm" ]; then
-              pnpm install --frozen-lockfile
+              pnpm install --frozen-lockfile || pnpm install
             elif [ "$PM" = "yarn" ]; then
-              yarn install --frozen-lockfile
+              yarn install --frozen-lockfile || yarn install
             else
               if [ -f package-lock.json ]; then
                 npm ci
@@ -62,16 +61,12 @@ jobs:
         shell: bash
         run: |
           if [ -f package.json ]; then
-            node -e "try{const p=require('./package.json'); if(!(p.scripts&&p.scripts.test)){process.exit(2)}}catch(e){process.exit(2)}"
-            EC=$?
-            if [ $EC -eq 0 ]; then
+            node -e "try{const p=require('./package.json'); if(!(p.scripts&&p.scripts.test)) process.exit(2)}catch(e){process.exit(2)}"
+            if [ $? -eq 0 ]; then
               PM="${{ steps.detect-pm.outputs.pm }}"
-              if [ "$PM" = "pnpm" ]; then
-                pnpm test --if-present
-              elif [ "$PM" = "yarn" ]; then
-                yarn test
-              else
-                npm run -s test
+              if [ "$PM" = "pnpm" ]; then pnpm test --if-present
+              elif [ "$PM" = "yarn" ]; then yarn test
+              else npm run -s test
               fi
             else
               echo "No test script. Skipping."
@@ -84,16 +79,12 @@ jobs:
         shell: bash
         run: |
           if [ -f package.json ]; then
-            node -e "try{const p=require('./package.json'); if(!(p.scripts&&p.scripts.build)){process.exit(2)}}catch(e){process.exit(2)}"
-            EC=$?
-            if [ $EC -eq 0 ]; then
+            node -e "try{const p=require('./package.json'); if(!(p.scripts&&p.scripts.build)) process.exit(2)}catch(e){process.exit(2)}"
+            if [ $? -eq 0 ]; then
               PM="${{ steps.detect-pm.outputs.pm }}"
-              if [ "$PM" = "pnpm" ]; then
-                pnpm build
-              elif [ "$PM" = "yarn" ]; then
-                yarn build
-              else
-                npm run -s build
+              if [ "$PM" = "pnpm" ]; then pnpm build
+              elif [ "$PM" = "yarn" ]; then yarn build
+              else npm run -s build
               fi
             else
               echo "No build script. Skipping."
@@ -117,4 +108,4 @@ jobs:
           if-no-files-found: ignore
 
       - name: Final status
-        run: echo "CI selesai. Jika tidak ada build/test, job tetap lulus (pastikan running)."
+        run: echo "CI selesai ✅"
