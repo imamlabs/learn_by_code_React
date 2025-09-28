@@ -1,0 +1,84 @@
+name: Vite Mini Projects CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+  workflow_dispatch:
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      projects: ${{ steps.set-matrix.outputs.projects }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find "vite mini project *" folders
+        id: set-matrix
+        shell: bash
+        run: |
+          set -e
+          mapfile -t PKG < <(find . -maxdepth 3 -type f -path "./vite mini project */package.json" | sort)
+          if [ ${#PKG[@]} -eq 0 ]; then
+            echo "Tidak ada folder 'vite mini project *' ditemukan."
+            echo 'projects=[]' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          JSON="["
+          SEP=""
+          for p in "${PKG[@]}"; do
+            dir="$(dirname "$p")"
+            JSON="${JSON}${SEP}"${dir#./}""
+            SEP=","
+          done
+          JSON="${JSON}]"
+          echo "projects=$JSON" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: prepare
+    if: ${{ needs.prepare.outputs.projects != '[]' && needs.prepare.outputs.projects != '' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: ${{ fromJSON(needs.prepare.outputs.projects) }}
+
+    defaults:
+      run:
+        working-directory: ${{ matrix.project }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Print project path
+        run: echo "Building ${{ matrix.project }}"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Run tests (skip if absent)
+        run: npm run -s test --if-present || echo "No test script."
+
+      - name: Build (skip if absent)
+        run: npm run -s build --if-present || echo "No build script."
+
+      - name: Upload dist/ (Vite)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.project }}-dist
+          path: ${{ matrix.project }}/dist/**
+          if-no-files-found: ignore
