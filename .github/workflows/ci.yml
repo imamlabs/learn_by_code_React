@@ -1,111 +1,102 @@
-name: CI
+name: Mini Project CI
 
 on:
   push:
-    branches: [ "**" ]
+    branches: ["**"]
+    # [opsional] batasi trigger hanya bila mini project berubah (ganti path sesuai repo kamu)
+    # paths:
+    #   - "react-complex-mini-project/**"
+    #   - "react-practice-js/**"
   pull_request:
-    branches: [ "**" ]
+    branches: ["**"]
+    # paths:
+    #   - "react-complex-mini-project/**"
+    #   - "react-practice-js/**"
   workflow_dispatch:
 
 jobs:
-  build-and-test:
+  mini-react:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # HAPUS opsi cache agar tidak butuh lock file
+      - name: Find mini project folder
+        id: find-mini
+        shell: bash
+        run: |
+          set -e
+          # Cari kandidat folder yang punya package.json
+          mapfile -t PKG_JSONS < <(git ls-files "**/package.json" || true)
+          BEST=""
+          for p in "${PKG_JSONS[@]}"; do
+            DIR="$(dirname "$p")"
+            NAME="$(node -e "try{console.log(require('./$p').name||'') }catch(e){console.log('')}")"
+            HAS_VITE="$(node -e "try{const pj=require('./$p'); const all={...pj.dependencies,...pj.devDependencies}; console.log(all && all.vite ? '1':'');}catch(e){console.log('')}")"
+            if [[ "$DIR" == *"react-complex-mini-project"* || "$DIR" == *"react-practice-js"* || "$HAS_VITE" == "1" ]]; then
+              BEST="$DIR"
+              break
+            fi
+          done
+
+          if [ -z "$BEST" ]; then
+            echo "❌ Mini project tidak ditemukan otomatis."
+            echo "Silakan set path manual dengan menambahkan env MINI_DIR di job ini."
+            echo "Contoh: MINI_DIR=react-complex-mini-project"
+            exit 1
+          fi
+
+          echo "dir=$BEST" >> "$GITHUB_OUTPUT"
+          echo "✅ Mini project terdeteksi di: $BEST"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Detect package manager
-        id: detect-pm
+      - name: Install dependencies
+        working-directory: ${{ steps.find-mini.outputs.dir }}
         shell: bash
         run: |
-          if [ -f pnpm-lock.yaml ]; then
-            echo "pm=pnpm" >> $GITHUB_OUTPUT
-          elif [ -f yarn.lock ]; then
-            echo "pm=yarn" >> $GITHUB_OUTPUT
+          if [ -f package-lock.json ]; then
+            npm ci
           else
-            echo "pm=npm" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Enable corepack (for yarn/pnpm)
-        if: steps.detect-pm.outputs.pm != 'npm'
-        run: corepack enable
-
-      - name: Install dependencies (if package.json exists)
-        shell: bash
-        run: |
-          if [ -f package.json ]; then
-            PM="${{ steps.detect-pm.outputs.pm }}"
-            echo "Using package manager: $PM"
-            if [ "$PM" = "pnpm" ]; then
-              pnpm install --frozen-lockfile || pnpm install
-            elif [ "$PM" = "yarn" ]; then
-              yarn install --frozen-lockfile || yarn install
-            else
-              if [ -f package-lock.json ]; then
-                npm ci
-              else
-                npm install
-              fi
-            fi
-          else
-            echo "No package.json found. Skipping install."
+            npm install
           fi
 
       - name: Run tests (if script exists)
+        working-directory: ${{ steps.find-mini.outputs.dir }}
         shell: bash
         run: |
-          if [ -f package.json ]; then
-            node -e "try{const p=require('./package.json'); if(!(p.scripts&&p.scripts.test)) process.exit(2)}catch(e){process.exit(2)}"
-            if [ $? -eq 0 ]; then
-              PM="${{ steps.detect-pm.outputs.pm }}"
-              if [ "$PM" = "pnpm" ]; then pnpm test --if-present
-              elif [ "$PM" = "yarn" ]; then yarn test
-              else npm run -s test
-              fi
-            else
-              echo "No test script. Skipping."
-            fi
+          node -e "try{const p=require('./package.json'); if(!(p.scripts&&p.scripts.test)) process.exit(2)}catch(e){process.exit(2)}"
+          if [ $? -eq 0 ]; then
+            npm run -s test
           else
-            echo "No package.json found. Skipping tests."
+            echo "No test script. Skipping."
           fi
 
       - name: Build (if script exists)
+        working-directory: ${{ steps.find-mini.outputs.dir }}
         shell: bash
         run: |
-          if [ -f package.json ]; then
-            node -e "try{const p=require('./package.json'); if(!(p.scripts&&p.scripts.build)) process.exit(2)}catch(e){process.exit(2)}"
-            if [ $? -eq 0 ]; then
-              PM="${{ steps.detect-pm.outputs.pm }}"
-              if [ "$PM" = "pnpm" ]; then pnpm build
-              elif [ "$PM" = "yarn" ]; then yarn build
-              else npm run -s build
-              fi
-            else
-              echo "No build script. Skipping."
-            fi
+          node -e "try{const p=require('./package.json'); if(!(p.scripts&&p.scripts.build)) process.exit(2)}catch(e){process.exit(2)}"
+          if [ $? -eq 0 ]; then
+            npm run -s build
           else
-            echo "No package.json found. Skipping build."
+            echo "No build script. Skipping."
           fi
 
-      - name: Upload build artifact (Vite dist/)
+      - name: Upload dist/ (Vite)
         uses: actions/upload-artifact@v4
         with:
-          name: build-dist
-          path: dist/**
+          name: mini-dist
+          path: ${{ steps.find-mini.outputs.dir }}/dist/**
           if-no-files-found: ignore
 
-      - name: Upload build artifact (CRA build/)
+      - name: Upload build/ (CRA)
         uses: actions/upload-artifact@v4
         with:
-          name: build-cra
-          path: build/**
+          name: mini-build
+          path: ${{ steps.find-mini.outputs.dir }}/build/**
           if-no-files-found: ignore
-
-      - name: Final status
-        run: echo "CI selesai ✅"
